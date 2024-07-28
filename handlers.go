@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -38,12 +39,19 @@ func (app *Config) ChatResponse(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Sending request: %s", string(jsonData))
 
-	res, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	res, err := http.Post(url+genApi, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		app.errorJSON(w, err)
 		return
 	}
 	defer res.Body.Close()
+
+	log.Printf("Status code: %d", res.StatusCode)
+
+	if res.StatusCode != 200 {
+		app.errorJSON(w, fmt.Errorf("(%d) %s: Not able to process request with the selected model", res.StatusCode, http.StatusText(res.StatusCode)))
+		return
+	}
 
 	ws := w.(http.Flusher)
 
@@ -73,7 +81,7 @@ func (app *Config) ChatResponse(w http.ResponseWriter, r *http.Request) {
 		finalRes.Response = strings.Join(responses, "")
 		finalRes.Done = llmRes.Done
 
-		log.Printf("Response: %s", llmRes.Response)
+		// log.Printf("Response: %s", llmRes.Response)
 		app.writeJSON(w, http.StatusOK, llmRes)
 		// app.writeJSON(w, http.StatusOK, finalRes)
 
@@ -82,4 +90,31 @@ func (app *Config) ChatResponse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// app.writeJSON(w, http.StatusOK, finalRes)
+}
+
+// handle model list get
+func (app *Config) GetModels(w http.ResponseWriter, r *http.Request) {
+	jsonresp := jsonResponse{
+		Error:   false,
+		Message: "success",
+	}
+
+	// call the tag list endpoint
+	res, err := http.Get(url + tagApi)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	defer res.Body.Close()
+	var models Models
+	err = json.NewDecoder(res.Body).Decode(&models)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	jsonresp.Data = models
+
+	app.writeJSON(w, http.StatusOK, jsonresp)
 }

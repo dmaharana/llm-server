@@ -27,6 +27,7 @@ func (app *Config) routes() http.Handler {
 	mux.Use(middleware.Heartbeat("/ping"))
 
 	mux.Post("/api/chat", app.ChatResponse)
+	mux.Get("/api/models", app.GetModels)
 
 	return mux
 }

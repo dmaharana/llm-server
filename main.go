@@ -7,8 +7,10 @@ import (
 )
 
 const (
-	url   = "http://localhost:11434/api/generate"
-	model = "llama3"
+	url    = "http://localhost:11434"
+	genApi = "/api/generate"
+	tagApi = "/api/tags"
+	model  = "llama3"
 	// model = "qwen27b:5"
 	// model = "gemma1:q8"
 )
@@ -20,7 +22,7 @@ type Config struct {
 
 func main() {
 	// withUserInput()
-
+        log.SetFlags(log.LstdFlags | log.Lshortfile)
 	app := Config{}
 	// start server
 	srv := &http.Server{
