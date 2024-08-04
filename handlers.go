@@ -24,12 +24,23 @@ func (app *Config) ChatResponse(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Received model: %s", reqPayload.Model)
 	log.Printf("Received question: %s", reqPayload.Prompt)
+	log.Printf("Payload: %+v", reqPayload)
 
 	responses := []string{}
 
 	var llmRequest RequestData
 	llmRequest.Model = reqPayload.Model
-	llmRequest.Prompt = reqPayload.Prompt
+
+	if reqPayload.IncludeHistory {
+		llmRequest.Messages = createMessages(reqPayload)
+	} else {
+		llmRequest.Prompt = reqPayload.Prompt
+	}
+
+	// if includehistory is false and systemprompt is not empty, then prepend it to the prompt
+	if !reqPayload.IncludeHistory && reqPayload.SystemPrompt != "" {
+		llmRequest.Prompt = reqPayload.SystemPrompt + "\n" + reqPayload.Prompt
+	}
 
 	jsonData, err := json.Marshal(llmRequest)
 	if err != nil {
@@ -39,7 +50,13 @@ func (app *Config) ChatResponse(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Sending request: %s", string(jsonData))
 
-	res, err := http.Post(url+genApi, "application/json", bytes.NewBuffer(jsonData))
+	apiEndpoint := url + genApi
+	if reqPayload.IncludeHistory {
+		apiEndpoint = url + chatApi
+	}
+	log.Printf("Sending request to: %s", apiEndpoint)
+
+	res, err := http.Post(apiEndpoint, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		app.errorJSON(w, err)
 		return
@@ -77,11 +94,16 @@ func (app *Config) ChatResponse(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		responses = append(responses, llmRes.Response)
-		finalRes.Response = strings.Join(responses, "")
-		finalRes.Done = llmRes.Done
+		if reqPayload.IncludeHistory {
+			responses = append(responses, llmRes.Message.Content)
+			llmRes.Response = llmRes.Message.Content
+		} else {
+			responses = append(responses, llmRes.Response)
+		}
 
-		// log.Printf("Response: %s", llmRes.Response)
+		finalRes.Response = strings.Join(responses, "")
+		// finalRes.Done = llmRes.Done
+
 		app.writeJSON(w, http.StatusOK, llmRes)
 		// app.writeJSON(w, http.StatusOK, finalRes)
 
@@ -117,4 +139,31 @@ func (app *Config) GetModels(w http.ResponseWriter, r *http.Request) {
 	jsonresp.Data = models
 
 	app.writeJSON(w, http.StatusOK, jsonresp)
+}
+
+func createMessages(payload RequestPayload) []Message {
+	log.Printf("Creating messages: %+v", payload)
+	var messages []Message
+	messages = append(messages, Message{
+		Role:    "system",
+		Content: payload.SystemPrompt,
+	})
+
+	for _, c := range payload.ChatMessages {
+		messages = append(messages, Message{
+			Role:    "user",
+			Content: c.Prompt,
+		})
+		messages = append(messages, Message{
+			Role:    "assistant",
+			Content: c.Response,
+		})
+	}
+
+	messages = append(messages, Message{
+		Role:    "user",
+		Content: payload.Prompt,
+	})
+
+	return messages
 }

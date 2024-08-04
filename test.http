@@ -7,20 +7,33 @@
 POST http://localhost:8011/api/chat
 Content-Type: application/json
 
-{"model": "qwen05:q8", "prompt": "Give me 1 advice for the day."}
+{"model": "{{model_name}}", "prompt": "Give me 1 advice for the day."}
 
 ### chat
-POST http://localhost:8011/chat
+POST http://localhost:8011/api/chat
 Content-Type: application/json
 
-{"model": "llama3:latest", "prompt": "Give me 1 advice for the day."}
+{"model": "{{model_name}}", "prompt": "Give me 1 advice for the day."}
+
+### chat
+POST http://localhost:8011/api/chat
+Content-Type: application/json
+
+{"model": "{{model_name}}", "prompt": "Give me 1 advice for the day.", "includeHistory": true, "systemPrompt":"You are a helpful assistant. Answer as concisely as possible."}
+
+
+### llm request
+POST http://localhost:11434/api/chat
+Content-Type: application/json
+
+{"model":"qwen2:0.5b","messages":[{"role":"system","content":"You are a helpful assistant. Answer as concisely as possible."},{"role":"user","content":"Give me 1 advice for the day."}]}
 
 ### llm request
 POST http://localhost:11434/api/generate
 Content-Type: application/json
 
 {
-    "model": "qwen05:q8", 
+    "model": "{{model_name}}", 
     "prompt": "Give me 2 top health tips.",
     "stream": true,
     "options": {
@@ -107,7 +120,7 @@ POST http://localhost:11434/api/chat
       "content": "Tell me a joke about Joe Biden being sleepy"
     }
   ],
-  "stream": false
+  "stream": true
 }
 
 

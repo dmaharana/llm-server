@@ -13,28 +13,36 @@ import (
 )
 
 type RequestData struct {
-	Model  string `json:"model"`
-	Prompt string `json:"prompt"`
+	Model    string    `json:"model"`
+	Prompt   string    `json:"prompt,omitempty"`
+	Messages []Message `json:"messages,omitempty"`
 }
 
 type RequestPayload struct {
-	Model        string         `json:"model"`
-	Prompt       string         `json:"prompt"`
-	ChatMessages []Conversation `json:"conversation"`
+	Model          string         `json:"model"`
+	Prompt         string         `json:"prompt"`
+	ChatMessages   []Conversation `json:"conversation,omitempty"`
+	IncludeHistory bool           `json:"includeHistory"`
+	SystemPrompt   string         `json:"systemPrompt"`
 }
 
 type Conversation struct {
-	Id       string `json:"id"`
-	Query    string `json:"query"`
-	Prompt   string `json:"prompt"`
-	Response string `json:"response"`
+	Id       int16  `json:"id"`
+	Prompt   string `json:"user"`
+	Response string `json:"assistant"`
 }
 
 type ResponseData struct {
-	Response  string `json:"response"`
-	Model     string `json:"model"`
-	CreatedAt string `json:"created_at"`
-	Done      bool   `json:"done"`
+	Response  string  `json:"response,omitempty"`
+	Message   Message `json:"message,omitempty"`
+	Model     string  `json:"model"`
+	CreatedAt string  `json:"created_at"`
+	Done      bool    `json:"done"`
+}
+
+type Message struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
 }
 
 func spinner(delay time.Duration, done chan bool) {
